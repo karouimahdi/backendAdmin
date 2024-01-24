@@ -68,8 +68,9 @@ const {firebaseUrl} =req.file ? req.file : "";
     let transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'louay.kasdallah12@gmail.com',
-        pass: 'tpteyexpxgzjeqac'
+        user: 'mahdikaroui383@gmail.com', // Replace with your email
+        pass: 'doyr zflv xvcu rumh', // Replace with your email password
+    
       }
     });
   
@@ -85,7 +86,7 @@ const {firebaseUrl} =req.file ? req.file : "";
 
   
     const mailOptions = {
-      from: 'Transport_APP<louay.kasdallah12@gmail.com>',
+      from: 'Transport_APP<mahdikaroui383@gmail.com>',
       to: Email,
       subject: 'Transport_APP Account For admin ',
       html: '<h3>Your Transport_APP Account Has been created. \n Email : ' +Email+ '\n Password : Your Phone Number.</h3>'
@@ -251,6 +252,7 @@ const {firebaseUrl} =req.file ? req.file : "";
         
     });
 }
+//??
 
 const recuperermedicament = async (req, res) => {
 

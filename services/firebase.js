@@ -1,16 +1,7 @@
+const { storageApp, BUCKET } = require('./config');
 
-var admin = require("firebase-admin");
+const bucket = storageApp.storage().bucket();
 
-var serviceAccount = require("../firebase-key.json");
-
-const BUCKET ="imagestor-768b5.appspot.com"
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket:BUCKET
-});
-
-
-const bucket = admin.storage().bucket();
 
 const UploadImage = (req, res, next) => {
     if (!req.files) return next();

@@ -1,116 +1,128 @@
-const Chauffeur   = require('../Models/Chauffeur')
-const bcrypt  =require('bcryptjs')
+const Chauffeur = require("../Models/Chauffeur");
+const bcrypt = require("bcryptjs");
 const config = require("../config.json");
-const jwt    =require('jsonwebtoken')
-const nodemailer = require('nodemailer');
+const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 
-
+const firebaseModule = require("../services/config");
+const realtimeDB = firebaseModule.firestoreApp.database();
 
 /**--------------------Ajouter un agnet------------------------  */
 
 const register = async (req, res) => {
-    const { Nom , Prenom, email, phone,DateNaissance,gender,role ,Nationalite,cnicNo,address,ratingsAverage,ratingsQuantity,postalCode} = req.body;
-    
- 
-// const {firebaseUrl} =req.file ? req.file : "";
+  const {
+    Nom,
+    Prenom,
+    email,
+    phone,
+    DateNaissance,
+    gender,
+    role,
+    Nationalite,
+    cnicNo,
+    address,
+    ratingsAverage,
+    ratingsQuantity,
+    postalCode,
+  } = req.body;
 
+  // const {firebaseUrl} =req.file ? req.file : "";
 
-const photoAvatarUrl = req.uploadedFiles.photoAvatar || '';
-const photoPermisRecUrl = req.uploadedFiles.photoPermisRec || '';
-const photoPermisVerUrl = req.uploadedFiles.photoPermisVer || '';
-const photoVtcUrl = req.uploadedFiles.photoVtc || '';
-const photoCinUrl = req.uploadedFiles.photoCin || '';
+  const photoAvatarUrl = req.uploadedFiles.photoAvatar || "";
+  const photoPermisRecUrl = req.uploadedFiles.photoPermisRec || "";
+  const photoPermisVerUrl = req.uploadedFiles.photoPermisVer || "";
+  const photoVtcUrl = req.uploadedFiles.photoVtc || "";
+  const photoCinUrl = req.uploadedFiles.photoCin || "";
 
+  const verifUtilisateur = await Chauffeur.findOne({ email });
+  if (verifUtilisateur) {
+    res.status(403).send({ message: "Chauffeur existe deja !" });
+  } else {
+    const nouveauUtilisateur = new Chauffeur();
 
+    mdpEncrypted = bcrypt.hashSync(phone, 10);
 
-    const verifUtilisateur = await Chauffeur.findOne({ email });
-    if (verifUtilisateur) {
-      res.status(403).send({ message: "Chauffeur existe deja !" });
-    } else {
-      const nouveauUtilisateur = new Chauffeur();
+    const nounIndex = Math.floor(Math.random() * Nom.length);
+    const preIndex = Math.floor(Math.random() * Prenom.length);
+    const randomNumber = Math.floor(Math.random() * 90000);
 
-  
-      mdpEncrypted = bcrypt.hashSync(phone,10);
+    nouveauUtilisateur.username = `${Nom[Math.floor(Math.random() * Nom.length)]
+      }${Prenom[Math.floor(Math.random() * Prenom.length)]}${Math.floor(
+        Math.random() * 90000
+      )}`;
+    nouveauUtilisateur.Nom = Nom;
+    nouveauUtilisateur.Prenom = Prenom;
+    nouveauUtilisateur.email = email;
+    nouveauUtilisateur.phone = phone;
+    nouveauUtilisateur.password = mdpEncrypted;
+    nouveauUtilisateur.photoAvatar = photoAvatarUrl;
+    nouveauUtilisateur.photoCin = photoCinUrl;
+    nouveauUtilisateur.photoPermisRec = photoPermisRecUrl;
+    nouveauUtilisateur.photoPermisVer = photoPermisVerUrl;
+    nouveauUtilisateur.photoVtc = photoVtcUrl;
+    nouveauUtilisateur.gender = gender;
+    nouveauUtilisateur.role = "Chauffeur";
+    nouveauUtilisateur.Cstatus = "En_cours";
+    nouveauUtilisateur.DateNaissance = DateNaissance;
+    nouveauUtilisateur.Nationalite = Nationalite;
+    nouveauUtilisateur.cnicNo = cnicNo;
+    nouveauUtilisateur.address = address;
+    // nouveauUtilisateur.ratingsAverage = ratingsAverage
+    // nouveauUtilisateur.ratingsQuantity = ratingsQuantity
+    nouveauUtilisateur.postalCode = postalCode;
+    nouveauUtilisateur.isActive = true;
 
-      const nounIndex = Math.floor(Math.random() * Nom.length);
-      const preIndex = Math.floor(Math.random() * Prenom.length);
-      const randomNumber = Math.floor(Math.random() * 90000);
+    console.log(nouveauUtilisateur);
 
-      nouveauUtilisateur.username = `${Nom[Math.floor(Math.random() * Nom.length)]}${Prenom[Math.floor(Math.random() * Prenom.length)]}${Math.floor(Math.random() * 90000)}`;
-      nouveauUtilisateur.Nom = Nom;
-      nouveauUtilisateur.Prenom = Prenom;
-      nouveauUtilisateur.email = email;
-      nouveauUtilisateur.phone = phone;
-      nouveauUtilisateur.password = mdpEncrypted; 
-      nouveauUtilisateur.photoAvatar = photoAvatarUrl;
-       nouveauUtilisateur.photoCin = photoCinUrl;
-      nouveauUtilisateur.photoPermisRec = photoPermisRecUrl;
-      nouveauUtilisateur.photoPermisVer = photoPermisVerUrl;
-      nouveauUtilisateur.photoVtc = photoVtcUrl;
-      nouveauUtilisateur.gender = gender;
-      nouveauUtilisateur.role = "Chauffeur";
-      nouveauUtilisateur.Cstatus = "En_cours";
-      nouveauUtilisateur.DateNaissance = DateNaissance
-      nouveauUtilisateur.Nationalite = Nationalite
-      nouveauUtilisateur.cnicNo = cnicNo
-      nouveauUtilisateur.address = address
-      // nouveauUtilisateur.ratingsAverage = ratingsAverage
-      // nouveauUtilisateur.ratingsQuantity = ratingsQuantity
-      nouveauUtilisateur.postalCode = postalCode
-      nouveauUtilisateur.isActive = true;
-      
-  
-      console.log (
-        nouveauUtilisateur
-    )
+    nouveauUtilisateur.save();
 
-
-    
-      nouveauUtilisateur.save();
-  
-      console.log(
-        mdpEncrypted
-      )
-      // token creation
-      const token = jwt.sign({ _id: nouveauUtilisateur._id }, config.token_secret, {
+    console.log(mdpEncrypted);
+    // token creation
+    const token = jwt.sign(
+      { _id: nouveauUtilisateur._id },
+      config.token_secret,
+      {
         expiresIn: "120000", // in Milliseconds (3600000 = 1 hour)
-      });
-  
-      sendConfirmationEmail(email , Nom[nounIndex]+Prenom[preIndex]+randomNumber);
-      res.status(201).send({ message: "success", uses: nouveauUtilisateur, "Token": jwt.verify(token, config.token_secret) });
+      }
+    );
+
+    sendConfirmationEmail(
+      email,
+      Nom[nounIndex] + Prenom[preIndex] + randomNumber
+    );
+    res.status(201).send({
+      message: "success",
+      uses: nouveauUtilisateur,
+      Token: jwt.verify(token, config.token_secret),
+    });
+  }
+};
+
+async function sendConfirmationEmail(Email, Nom) {
+  // create reusable transporter object using the default SMTP transport
+  let transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "testrapide45@gmail.com",
+      pass: "vtvtceruhzparthg",
+    },
+  });
+
+  transporter.verify(function (error, success) {
+    if (error) {
+      console.log(error);
+      console.log("Server not ready");
+    } else {
+      console.log("Server is ready to take our messages");
     }
-  };
+  });
 
-
-
-
-  
-  async function sendConfirmationEmail(Email ,Nom) {
-    // create reusable transporter object using the default SMTP transport
-    let transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: 'testrapide45@gmail.com',
-        pass: 'vtvtceruhzparthg'
-      }
-    });
-  
-    transporter.verify(function (error, success) {
-      if (error) {
-        console.log(error);
-        console.log("Server not ready");
-      } else {
-        console.log("Server is ready to take our messages");
-      }
-    });
-  
-
-  
-    const mailOptions = {
-      from: 'TunisieUber<testrapide45@gmail.com>',
-      to: Email,
-      subject: 'TunisieUber Nouveau Compte ',
-      html: `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+  const mailOptions = {
+    from: "TunisieUber<testrapide45@gmail.com>",
+    to: Email,
+    subject: "TunisieUber Nouveau Compte ",
+    html:
+      `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
       <html xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" style="font-family:arial, 'helvetica neue', helvetica, sans-serif">
       <head>
       <meta charset="UTF-8">
@@ -231,7 +243,11 @@ const photoCinUrl = req.uploadedFiles.photoCin || '';
       <td align="center" valign="top" style="padding:0;Margin:0;width:520px">
       <table cellpadding="0" cellspacing="0" width="100%" role="presentation" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px">
       <tr>
-      <td align="left" style="padding:0;Margin:0;padding-top:5px;padding-bottom:5px"><h3 style="Margin:0;line-height:24px;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;font-size:20px;font-style:normal;font-weight:normal;color:#2D033A">Cher(e) ` +Email+`,</h3><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Nous sommes ravis de vous accueillir sur TunisieUber ! Votre compte a été créé avec succès, et nous tenons à vous fournir les détails de connexion dont vous avez besoin pour commencer.</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Voici vos informations de compte :</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Adresse e-mail : <a href="mailto:louay.benkasdallah@esprit.tn" target="_blank" style="-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;text-decoration:none;color:#3B8026;font-size:14px">` + Email +`</a></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Mot de passe : [Numéro Du Télephone]</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Nous vous recommandons de garder ces informations en lieu sûr et de ne pas les partager avec d'autres personnes. Si vous avez des raisons de croire que votre compte a été compromis, veuillez nous contacter immédiatement.</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Si vous avez des questions ou rencontrez des problèmes lors de votre utilisation de notre plateforme, n'hésitez pas à nous contacter. Notre équipe d'assistance se fera un plaisir de vous aider.</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Encore une fois, merci de nous rejoindre sur TunisieUber . Nous sommes impatients de vous offrir une expérience exceptionnelle.</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Cordialement,</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">TunisieUber</p></td>
+      <td align="left" style="padding:0;Margin:0;padding-top:5px;padding-bottom:5px"><h3 style="Margin:0;line-height:24px;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;font-size:20px;font-style:normal;font-weight:normal;color:#2D033A">Cher(e) ` +
+      Email +
+      `,</h3><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Nous sommes ravis de vous accueillir sur TunisieUber ! Votre compte a été créé avec succès, et nous tenons à vous fournir les détails de connexion dont vous avez besoin pour commencer.</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Voici vos informations de compte :</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Adresse e-mail : <a href="mailto:louay.benkasdallah@esprit.tn" target="_blank" style="-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;text-decoration:none;color:#3B8026;font-size:14px">` +
+      Email +
+      `</a></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Mot de passe : [Numéro Du Télephone]</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Nous vous recommandons de garder ces informations en lieu sûr et de ne pas les partager avec d'autres personnes. Si vous avez des raisons de croire que votre compte a été compromis, veuillez nous contacter immédiatement.</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Si vous avez des questions ou rencontrez des problèmes lors de votre utilisation de notre plateforme, n'hésitez pas à nous contacter. Notre équipe d'assistance se fera un plaisir de vous aider.</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Encore une fois, merci de nous rejoindre sur TunisieUber . Nous sommes impatients de vous offrir une expérience exceptionnelle.</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px"><br></p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">Cordialement,</p><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:'Josefin Sans', helvetica, arial, sans-serif;line-height:21px;color:#38363A;font-size:14px">TunisieUber</p></td>
       </tr>
       </table></td>
       </tr>
@@ -273,47 +289,47 @@ const photoCinUrl = req.uploadedFiles.photoCin || '';
       </table>
       </div>
       </body>
-      </html>`
-    };
-  
-    transporter.sendMail(mailOptions, function (error, info) {
-      if (error) {
-        console.log(error);
-      } else {
-        console.log('Email sent: ' + info.response);
-      }
-    });
-  }
+      </html>`,
+  };
 
-
-  
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Email sent: " + info.response);
+    }
+  });
+}
 
 /**--------------Login Admin-------------------- */
-  
+
 const login = (req, res) => {
-  const username= req.body.username;
+  const username = req.body.username;
   const password = req.body.password;
   Chauffeur.findOne({ username: username }, function (err, user) {
     if (err) {
       console.log(err);
-      res.status(500).send({ message: "Error retrieving user with username " + username });
+      res
+        .status(500)
+        .send({ message: "Error retrieving user with username " + username });
       return;
     }
     if (!user) {
-      res.status(403).send({ message: "User not found with email " + username });
+      res
+        .status(403)
+        .send({ message: "User not found with email " + username });
       return;
     }
 
-   
     if (bcrypt.compare(password, user.password)) {
       res.json({
         role: user.role,
         email: user.email,
         password: user.password,
-        id : user.id,
+        id: user.id,
         Nom: user.Nom,
         Prenom: user.Prenom,
-        photoAvatar : user.photoAvatar
+        photoAvatar: user.photoAvatar,
       });
     } else {
       res.status(403).send({ message: "Password does not match!" });
@@ -321,78 +337,69 @@ const login = (req, res) => {
   });
 };
 
-  /**----------Update Agent----------------- */
-  const update = (req, res, next)=>{
-    const {id} = req.params
-    const photoAvatarUrl = req.uploadedFiles.photoAvatar ;
-    const photoPermisRecUrl = req.uploadedFiles.photoPermisRec ;
-    const photoPermisVerUrl = req.uploadedFiles.photoPermisVer ;
-    const photoVtcUrl = req.uploadedFiles.photoVtc ;
-    const photoCinUrl = req.uploadedFiles.photoCin ;
-    let updateData ={
+/**----------Update Agent----------------- */
+const update = (req, res, next) => {
+  const { id } = req.params;
+  const photoAvatarUrl = req.uploadedFiles.photoAvatar;
+  const photoPermisRecUrl = req.uploadedFiles.photoPermisRec;
+  const photoPermisVerUrl = req.uploadedFiles.photoPermisVer;
+  const photoVtcUrl = req.uploadedFiles.photoVtc;
+  const photoCinUrl = req.uploadedFiles.photoCin;
+  let updateData = {
+    Nom: req.body.Nom,
+    Prenom: req.body.Prenom,
+    email: req.body.email,
+    phone: req.body.phone,
+    photoAvatar: photoAvatarUrl,
+    photoCin: photoCinUrl,
+    photoPermisRec: photoPermisRecUrl,
+    photoPermisVer: photoPermisVerUrl,
+    photoVtc: photoVtcUrl,
+    gender: req.body.gender,
+    role: req.body.role,
+    Nationalite: req.body.Nationalite,
+    DateNaissance: req.body.DateNaissance,
+    cnicNo: req.body.cnicNo,
+    address: req.body.address,
+    postalCode: req.body.postalCode,
+  };
+  console.log(updateData);
 
-  
-        Nom : req.body.Nom,
-        Prenom : req.body.Prenom,
-        email : req.body.email,
-        phone : req.body.phone,
-        photoAvatar : photoAvatarUrl,
-        photoCin : photoCinUrl,
-        photoPermisRec : photoPermisRecUrl,
-        photoPermisVer : photoPermisVerUrl,
-        photoVtc : photoVtcUrl,
-        gender:req.body.gender,
-        role:req.body.role,
-        Nationalite : req.body.Nationalite,
-        DateNaissance : req.body.DateNaissance,
-       cnicNo : req.body.cnicNo,
-       address : req.body.address,
-      postalCode : req.body.postalCode,
-    
-    }
-    console.log(updateData)
-
-    Chauffeur.findByIdAndUpdate(id , {$set :  updateData})
-    .then (() =>{
-        res.json({
-            message : ' Chauffeur  update with succes !'
-        })
-
+  Chauffeur.findByIdAndUpdate(id, { $set: updateData })
+    .then(() => {
+      res.json({
+        message: " Chauffeur  update with succes !",
+      });
     })
-.catch(error =>{
-    res.json({
-        message : 'error with updtaing Chauffeur !'
-    })
-})
-
-}
+    .catch((error) => {
+      res.json({
+        message: "error with updtaing Chauffeur !",
+      });
+    });
+};
 
 const updatestatus = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const chauffeurUpdated = await Chauffeur.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          isActive: false,
-          Cstatus: "Désactivé"
-        }
-      }
-    );
+    const chauffeurUpdated = await Chauffeur.findByIdAndUpdate(id, {
+      $set: {
+        isActive: false,
+        Cstatus: "Désactivé",
+      },
+    });
 
     if (!chauffeurUpdated) {
       return res.status(404).send({
-        message: "Chauffeur not found!"
+        message: "Chauffeur not found!",
       });
     }
 
     console.log(chauffeurUpdated);
 
     return res.status(200).send({
-      message: "Chauffeur was Disabled successfully!"
+      message: "Chauffeur was Disabled successfully!",
     });
-
   } catch (error) {
     return res.status(500).send({ error: error });
   }
@@ -401,93 +408,78 @@ const Comptevald = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const chauffeurUpdated = await Chauffeur.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          isActive: true,
-          Cstatus: "Validé"
-        }
-      }
-    );
+    const chauffeurUpdated = await Chauffeur.findByIdAndUpdate(id, {
+      $set: {
+        isActive: true,
+        Cstatus: "Validé",
+      },
+    });
 
     if (!chauffeurUpdated) {
       return res.status(404).send({
-        message: "Chauffeur not found!"
+        message: "Chauffeur not found!",
       });
     }
 
     console.log(chauffeurUpdated);
 
     return res.status(200).send({
-      message: "Chauffeur was updated successfully!"
+      message: "Chauffeur was updated successfully!",
     });
-
   } catch (error) {
     return res.status(500).send({ error: error });
   }
 };
 
-
-
-    const chauffdes = async(req,res,data) =>{
-   
-      Chauffeur.find({ isActive: false }, (err, data) => {
-        if (err) {
-          console.log(err);
-          return res.status(500).send(err);
-        }
-        
-        console.log(data);
-        res.json(data);
-      });
+const chauffdes = async (req, res, data) => {
+  Chauffeur.find({ isActive: false }, (err, data) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).send(err);
     }
-    
+
+    console.log(data);
+    res.json(data);
+  });
+};
 
 /**-----------Cherche sur un agent ------------- */
 
+const searchuse = async (req, res) => {
+  const id = req.params.id;
+  Chauffeur.findById(id)
+    .then((data) => {
+      if (!data)
+        res.status(404).send({ message: "Agent introuvable pour id " + id });
+      else res.send(data);
+      console.log(data);
+    })
+    .catch((err) => {
+      res
+        .status(500)
+        .send({ message: "Erreur recuperation Agent avec id=" + id });
+    });
+};
 
-   const  searchuse = async(req,res) => {
-        const id = req.params.id;
-        Chauffeur.findById(id)
-          .then(data => {
-            if (!data)
-              res.status(404).send({ message: "Agent introuvable pour id " + id });
-            else res.send(data);
-            console.log(data)
-          })
-          .catch(err => {
-            res
-              .status(500)
-              .send({ message: "Erreur recuperation Agent avec id=" + id });
-          });
-
-          
-      }
-
-
-        const recupereruse = async(req,res ,data) =>{
-          Chauffeur.find(
-            { Cstatus: { $in: ["Validé", "En_cours"] } },
-            (err, data) => {
-              if (err) {
-                console.error(err);
-                res.status(500).send("An error occurred");
-              } else {
-                res.json(data);
-                console.log(data);
-              }
-            }
-          );
-}
+const recupereruse = async (req, res, data) => {
+  Chauffeur.find({ Cstatus: { $in: ["Validé", "En_cours"] } }, (err, data) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send("An error occurred");
+    } else {
+      res.json(data);
+      console.log(data);
+    }
+  });
+};
 
 // const recupereruse = async(req,res,data) =>{
-   
+
 //   Chauffeur.find({ isActive: true },(err, data)=>{
-    
+
 //       res.json(data);
 //       console.log(data)
-      
+
 //   });
 // }
 
@@ -505,45 +497,41 @@ const recuperernewchauf = async (req, res, data) => {
 
 /**----------------------Supprimer un agent------------------- */
 
-
 const destroy = async (req, res) => {
-    const id = req.params.id;
-    Chauffeur.findByIdAndRemove(id)
-    .then(data => {
+  const id = req.params.id;
+  Chauffeur.findByIdAndRemove(id)
+    .then((data) => {
       if (!data) {
         res.status(404).send({
-          message: `Impossible de supprimer Agent avec id=${id}. velo est possiblement introuvable!`
+          message: `Impossible de supprimer Agent avec id=${id}. velo est possiblement introuvable!`,
         });
       } else {
         res.send({
-          message: "Agent supprimée avec succès!"
+          message: "Agent supprimée avec succès!",
         });
       }
     })
-    .catch(err => {
+    .catch((err) => {
       res.status(500).send({
-        message: "Impossible de supprimer Agent avec id=" + id
+        message: "Impossible de supprimer Agent avec id=" + id,
       });
     });
-    }
+};
 
-    const updatestatuss = async (req, res, next) => {
+const updatestatuss = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const chauffeurUpdated = await Chauffeur.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          isActive: true,
-          Cstatus: "Validé"
-        }
-      }
-    );
+    const chauffeurUpdated = await Chauffeur.findByIdAndUpdate(id, {
+      $set: {
+        isActive: true,
+        Cstatus: "Validé",
+      },
+    });
 
     if (!chauffeurUpdated) {
       return res.status(404).send({
-        message: "Chauffeur not found!"
+        message: "Chauffeur not found!",
       });
     }
 
@@ -551,43 +539,52 @@ const destroy = async (req, res) => {
     const chauffeurEmail = updatedChauffeur.email; // Assuming the email property name is 'email'
 
     console.log(chauffeurUpdated);
+    const driversRef = realtimeDB.ref("Drivers");
+
+
+    driversRef.child(id.toString()).update({
+
+      Cstatus: true,
+    });
+    const activedriversRef = realtimeDB.ref("ActiveDrivers");
+    activedriversRef.child(id.toString()).set({
+      ...updatedChauffeur._doc,
+      Cstatus: true,
+    });
     sendConfirmationEmail(chauffeurEmail);
     return res.status(200).send({
       message: "Chauffeur was Disabled successfully!",
-      chauffeurEmail: chauffeurEmail // Sending the email in the response
+      chauffeurEmail: chauffeurEmail, // Sending the email in the response
     });
-
   } catch (error) {
     return res.status(500).send({ error: error });
   }
 };
-    
-    async function sendConfirmationEmail(Email ,Nom) {
-      // create reusable transporter object using the default SMTP transport
-      let transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: 'testrapide45@gmail.com',
-          pass: 'vtvtceruhzparthg'
-        }
-      });
-    
-      transporter.verify(function (error, success) {
-        if (error) {
-          console.log(error);
-          console.log("Server not ready");
-        } else {
-          console.log("Server is ready to take our messages");
-        }
-      });
-    
-  
-    
-      const mailOptions = {
-        from: 'TunisieUber<testrapide45@gmail.com>',
-        to: Email,
-        subject: 'TunisieUber Compte Validé ',
-        html: `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+async function sendConfirmationEmail(Email, Nom) {
+  // create reusable transporter object using the default SMTP transport
+  let transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "testrapide45@gmail.com",
+      pass: "vtvtceruhzparthg",
+    },
+  });
+
+  transporter.verify(function (error, success) {
+    if (error) {
+      console.log(error);
+      console.log("Server not ready");
+    } else {
+      console.log("Server is ready to take our messages");
+    }
+  });
+
+  const mailOptions = {
+    from: "TunisieUber<testrapide45@gmail.com>",
+    to: Email,
+    subject: "TunisieUber Compte Validé ",
+    html: `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
         <html xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" style="font-family:arial, 'helvetica neue', helvetica, sans-serif">
         <head>
         <meta charset="UTF-8">
@@ -725,19 +722,28 @@ const destroy = async (req, res) => {
         </table>
         </div>
         </body>
-        </html>`
-      };
-    
-      transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-          console.log(error);
-        } else {
-          console.log('Email sent: ' + info.response);
-        }
-      });
-    }
-  
+        </html>`,
+  };
 
-  module.exports ={
-    register, login,recupereruse,destroy,searchuse,update,updatestatus,chauffdes,updatestatuss,Comptevald,recuperernewchauf
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Email sent: " + info.response);
     }
+  });
+}
+
+module.exports = {
+  register,
+  login,
+  recupereruse,
+  destroy,
+  searchuse,
+  update,
+  updatestatus,
+  chauffdes,
+  updatestatuss,
+  Comptevald,
+  recuperernewchauf,
+};

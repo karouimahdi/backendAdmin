@@ -44,7 +44,6 @@ router.put('/updatechauf/:id',Multer.fields([
 
 ]),UploadImage,ChauffContro.update)
 
-
 router.post('/loginch',ChauffContro.login)
 router.get('/searchchauf/:id', ChauffContro.searchuse);
 router.get('/newchauf', ChauffContro.recuperernewchauf);
