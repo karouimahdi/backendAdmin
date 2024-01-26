@@ -45,7 +45,7 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 const corsOptions ={
 
-  origin:'https://frontadmin-jgwptx2fb-mahdikarouis-projects.vercel.app/', 
+  origin:'https://front-admin-vert.vercel.app/', 
 
 
 
