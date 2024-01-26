@@ -45,7 +45,7 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 const corsOptions ={
 
-  origin:'https://frontadmin-855q84ovy-mahdikarouis-projects.vercel.app/', 
+  origin:'https://frontadmin-beta.vercel.app', 
   //origin:'http://localhost:3002',
 
 
