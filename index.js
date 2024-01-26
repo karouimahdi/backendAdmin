@@ -46,7 +46,7 @@ app.use(logger('dev'));
 const corsOptions ={
 
   origin:'https://frontadmin-855q84ovy-mahdikarouis-projects.vercel.app/', 
-  origin:'http://localhost:3002',
+  //origin:'http://localhost:3002',
 
 
   credentials:true,            //access-control-allow-credentials:true
