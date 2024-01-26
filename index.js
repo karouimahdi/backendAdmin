@@ -45,7 +45,7 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 const corsOptions ={
 
-  origin:'https://front-admin-vert.vercel.app/', 
+  origin:'https://front-admin-vert.vercel.app', 
 
 
 
