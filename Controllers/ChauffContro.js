@@ -395,8 +395,20 @@ const updatestatus = async (req, res, next) => {
       });
     }
 
-    console.log(chauffeurUpdated);
 
+    console.log(chauffeurUpdated);
+ const driversRef = realtimeDB.ref("Drivers");
+
+
+    driversRef.child(id.toString()).update({
+
+      Cstatus: false,
+    });
+    const activedriversRef = realtimeDB.ref("ActiveDrivers");
+    activedriversRef.child(id.toString()).set({
+      ...updatedChauffeur._doc,
+      Cstatus: false,
+    });
     return res.status(200).send({
       message: "Chauffeur was Disabled successfully!",
     });
