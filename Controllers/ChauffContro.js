@@ -400,7 +400,7 @@ const updatestatus = async (req, res, next) => {
  const driversRef = realtimeDB.ref("Drivers");
 
 
-    driversRef.child(id.toString()).update({
+    driversRef.child(id.toString()).set({
 
       ...updatedChauffeur._doc,
       Cstatus: true,
