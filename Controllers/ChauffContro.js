@@ -6,6 +6,8 @@ const nodemailer = require("nodemailer");
 
 const firebaseModule = require("../services/config");
 const realtimeDB = firebaseModule.firestoreApp.database();
+const driversRef = realtimeDB.ref("Drivers");
+ const activedriversRef = realtimeDB.ref("ActiveDrivers");
 
 /**--------------------Ajouter un agnet------------------------  */
 
@@ -397,7 +399,6 @@ const updatestatus = async (req, res, next) => {
 
 
     console.log(chauffeurUpdated);
- const driversRef = realtimeDB.ref("Drivers");
 
 
     driversRef.child(id.toString()).set({
@@ -548,14 +549,11 @@ const updatestatuss = async (req, res, next) => {
     const chauffeurEmail = updatedChauffeur.email; // Assuming the email property name is 'email'
 
     console.log(chauffeurUpdated);
-    const driversRef = realtimeDB.ref("Drivers");
-
-
-    driversRef.child(id.toString()).update({
+    
+   /* driversRef.child(id.toString()).update({
 
       Cstatus: true,
-    });
-    const activedriversRef = realtimeDB.ref("ActiveDrivers");
+    });*/
     activedriversRef.child(id.toString()).set({
       ...updatedChauffeur._doc,
       Cstatus: true,
