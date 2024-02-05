@@ -568,11 +568,15 @@ const updatestatuss = async (req, res, next) => {
       ...updatedChauffeur._doc,
       Cstatus: true,
     });
-    sendConfirmationEmail(chauffeurEmail);
+    try {
+      const reponse = await sendConfirmationEmail(chauffeurEmail);
     return res.status(200).send({
       message: "Chauffeur was Disabled successfully!",
       chauffeurEmail: chauffeurEmail, // Sending the email in the response
-    });
+    });}
+    catch (error) {
+      console.error('Error sending email:', error);
+      }
   } catch (error) {
     return res.status(500).send({ error: error });
   }

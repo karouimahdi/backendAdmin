@@ -9,10 +9,13 @@ exports.addvoiture = async (req, res) => {
  
 // const {firebaseUrl} =req.file ? req.file : "";
 
-
+/*
 const cartegriseUrl = req.uploadedFiles.cartegrise || '';
 const assuranceUrl = req.uploadedFiles.assurance || '';
-
+*/
+const cartegriseUrl = req.uploadedFiles.photoAvatar || Buffer.alloc(0);
+  const assuranceUrl = req.uploadedFiles.photoPermisRec || Buffer.alloc(0);
+  
 
 
 

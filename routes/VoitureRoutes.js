@@ -4,7 +4,7 @@ const  router = express.Router()
 
 const VoitureCon  = require('../Controllers/VoitureContro')
 
-const UploadImage = require ("../services/firebase");
+const UploadImage = require ("../services/upload");
 
 
 const multer = require('multer')
