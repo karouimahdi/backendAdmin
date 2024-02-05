@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const config = require("../config.json");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
-
+const { Buffer } = require("node:buffer");
 const firebaseModule = require("../services/config");
 const realtimeDB = firebaseModule.firestoreApp.database();
 const driversRef = realtimeDB.ref("Drivers");
@@ -20,7 +20,6 @@ const register = async (req, res) => {
     DateNaissance,
     gender,
     role,
-    Nationalite,
     cnicNo,
     address,
     ratingsAverage,
@@ -30,11 +29,11 @@ const register = async (req, res) => {
 
   // const {firebaseUrl} =req.file ? req.file : "";
 
-  const photoAvatarUrl = req.uploadedFiles.photoAvatar || "";
-  const photoPermisRecUrl = req.uploadedFiles.photoPermisRec || "";
-  const photoPermisVerUrl = req.uploadedFiles.photoPermisVer || "";
-  const photoVtcUrl = req.uploadedFiles.photoVtc || "";
-  const photoCinUrl = req.uploadedFiles.photoCin || "";
+  const photoAvatarBuffer = req.uploadedFiles.photoAvatar || Buffer.alloc(0);
+  const photoPermisRecBuffer = req.uploadedFiles.photoPermisRec || Buffer.alloc(0);
+  const photoPermisVerBuffer = req.uploadedFiles.photoPermisVer || Buffer.alloc(0);
+  const photoVtcBuffer = req.uploadedFiles.photoVtc || Buffer.alloc(0);
+  const photoCinBuffer = req.uploadedFiles.photoCin || Buffer.alloc(0); // Check if the user already exists
 
   const verifUtilisateur = await Chauffeur.findOne({ email });
   if (verifUtilisateur) {
@@ -57,16 +56,15 @@ const register = async (req, res) => {
     nouveauUtilisateur.email = email;
     nouveauUtilisateur.phone = phone;
     nouveauUtilisateur.password = mdpEncrypted;
-    nouveauUtilisateur.photoAvatar = photoAvatarUrl;
-    nouveauUtilisateur.photoCin = photoCinUrl;
-    nouveauUtilisateur.photoPermisRec = photoPermisRecUrl;
-    nouveauUtilisateur.photoPermisVer = photoPermisVerUrl;
-    nouveauUtilisateur.photoVtc = photoVtcUrl;
+    nouveauUtilisateur.photoAvatar = photoAvatarBuffer;
+    nouveauUtilisateur.photoCin = photoCinBuffer;
+    nouveauUtilisateur.photoPermisRec = photoPermisRecBuffer;
+    nouveauUtilisateur.photoPermisVer = photoPermisVerBuffer;
+    nouveauUtilisateur.photoVtc = photoVtcBuffer;
     nouveauUtilisateur.gender = gender;
     nouveauUtilisateur.role = "Chauffeur";
     nouveauUtilisateur.Cstatus = "En_cours";
     nouveauUtilisateur.DateNaissance = DateNaissance;
-    nouveauUtilisateur.Nationalite = Nationalite;
     nouveauUtilisateur.cnicNo = cnicNo;
     nouveauUtilisateur.address = address;
     // nouveauUtilisateur.ratingsAverage = ratingsAverage
@@ -76,7 +74,8 @@ const register = async (req, res) => {
 
     console.log(nouveauUtilisateur);
 
-    nouveauUtilisateur.save();
+    try{
+      await nouveauUtilisateur.save();
 
     console.log(mdpEncrypted);
     // token creation
@@ -88,16 +87,24 @@ const register = async (req, res) => {
       }
     );
 
-    sendConfirmationEmail(
+    try{
+      const response = await sendConfirmationEmail(
       email,
       Nom[nounIndex] + Prenom[preIndex] + randomNumber
-    );
+    );console.log('Email sent successfully:', response);
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
     res.status(201).send({
       message: "success",
       uses: nouveauUtilisateur,
       Token: jwt.verify(token, config.token_secret),
     });
+  } catch (error) {
+    console.error("Error while saving user:", error);
+    res.status(500).send({ message: "Error while saving user." });
   }
+}
 };
 
 async function sendConfirmationEmail(Email, Nom) {
@@ -105,8 +112,8 @@ async function sendConfirmationEmail(Email, Nom) {
   let transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: "testrapide45@gmail.com",
-      pass: "vtvtceruhzparthg",
+      user: 'mahdikaroui383@gmail.com', // Replace with your email
+      pass: 'doyr zflv xvcu rumh', // Replace with your email password
     },
   });
 
@@ -294,12 +301,15 @@ async function sendConfirmationEmail(Email, Nom) {
       </html>`,
   };
 
-  transporter.sendMail(mailOptions, function (error, info) {
-    if (error) {
-      console.log(error);
-    } else {
-      console.log("Email sent: " + info.response);
-    }
+  return new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        reject(error);
+      } else {
+        console.log('Email sent: ' + info.response);
+        resolve(info.response);
+      }
+    });
   });
 }
 
@@ -471,16 +481,16 @@ const searchuse = async (req, res) => {
     });
 };
 
-const recupereruse = async (req, res, data) => {
-  Chauffeur.find({ Cstatus: { $in: ["Validé", "En_cours"] } }, (err, data) => {
-    if (err) {
-      console.error(err);
-      res.status(500).send("An error occurred");
-    } else {
-      res.json(data);
-      console.log(data);
-    }
-  });
+
+const recupereruse = async (req, res) => {
+  try {
+    const data = await Chauffeur.find({ Cstatus: { $in: ["Validé", "En_cours"] } });
+
+    res.json(data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("An error occurred");
+  }
 };
 
 // const recupereruse = async(req,res,data) =>{
@@ -573,8 +583,8 @@ async function sendConfirmationEmail(Email, Nom) {
   let transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: "testrapide45@gmail.com",
-      pass: "vtvtceruhzparthg",
+      user: 'mahdikaroui383@gmail.com', // Replace with your email
+      pass: 'doyr zflv xvcu rumh',
     },
   });
 
@@ -588,7 +598,7 @@ async function sendConfirmationEmail(Email, Nom) {
   });
 
   const mailOptions = {
-    from: "TunisieUber<testrapide45@gmail.com>",
+    from: 'Tunisie Uber <mahdikaroui383@gmail.com>',
     to: Email,
     subject: "TunisieUber Compte Validé ",
     html: `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -732,13 +742,16 @@ async function sendConfirmationEmail(Email, Nom) {
         </html>`,
   };
 
-  transporter.sendMail(mailOptions, function (error, info) {
-    if (error) {
-      console.log(error);
-    } else {
-      console.log("Email sent: " + info.response);
-    }
-  });
+  return new Promise((resolve, reject) => {
+      transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+          reject(error);
+        } else {
+          console.log('Email sent: ' + info.response);
+          resolve(info.response);
+        }
+      });
+    });
 }
 
 module.exports = {

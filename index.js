@@ -47,7 +47,7 @@ const corsOptions ={
 
   origin:'https://front-admin-vert.vercel.app', 
 
-//origin:' http://localhost:4000',
+//origin:' http://localhost:3002',
 
   credentials:true,            //access-control-allow-credentials:true
   optionSuccessStatus:200
