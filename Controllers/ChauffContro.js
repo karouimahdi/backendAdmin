@@ -6,8 +6,6 @@ const nodemailer = require("nodemailer");
 const { Buffer } = require("node:buffer");
 const firebaseModule = require("../services/config");
 const realtimeDB = firebaseModule.firestoreApp.database();
-const driversRef = realtimeDB.ref("Drivers");
- const activedriversRef = realtimeDB.ref("ActiveDrivers");
 
 /**--------------------Ajouter un agnet------------------------  */
 
@@ -408,14 +406,7 @@ const updatestatus = async (req, res, next) => {
     }
 
 
-    console.log(chauffeurUpdated);
-
-
-    driversRef.child(id.toString()).set({
-
-      ...updatedChauffeur._doc,
-      Cstatus: true,
-    });
+    console.log("success");
   
     return res.status(200).send({
       message: "Chauffeur was Disabled successfully!",
@@ -557,17 +548,23 @@ const updatestatuss = async (req, res, next) => {
 
     const updatedChauffeur = await Chauffeur.findById(id);
     const chauffeurEmail = updatedChauffeur.email; // Assuming the email property name is 'email'
+    const activedriversRef = realtimeDB.ref("ActiveDrivers");
 
-    console.log(chauffeurUpdated);
+    //console.log(chauffeurUpdated);
+    console.log("success");
+    const activeDriver = {
+      nom: chauffeurUpdated.Nom,
+      prenom: chauffeurUpdated.Prenom,
+      email: chauffeurUpdated.email,
+      mdp: chauffeurUpdated.password,
+      Cstatus: true,    };
+  await activedriversRef.child(id.toString()).set(activeDriver  );
+  console.log('Successfully updated data in Firebase Realtime Database');
+
+   
     
-   /* driversRef.child(id.toString()).update({
-
-      Cstatus: true,
-    });*/
-    activedriversRef.child(id.toString()).set({
-      ...updatedChauffeur._doc,
-      Cstatus: true,
-    });
+   
+    
     try {
       const reponse = await sendConfirmationEmail(chauffeurEmail);
     return res.status(200).send({
@@ -578,6 +575,8 @@ const updatestatuss = async (req, res, next) => {
       console.error('Error sending email:', error);
       }
   } catch (error) {
+    console.log (error)
+
     return res.status(500).send({ error: error });
   }
 };
