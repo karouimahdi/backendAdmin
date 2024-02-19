@@ -6,6 +6,9 @@ const nodemailer = require("nodemailer");
 const { Buffer } = require("node:buffer");
 const firebaseModule = require("../services/config");
 const realtimeDB = firebaseModule.firestoreApp.database();
+const db =require("../services/config");
+const admin = require('firebase-admin');
+const Car = require('../Models/Voiture'); // Assuming the Car schema is defined in 'Car.js'
 
 /**--------------------Ajouter un agnet------------------------  */
 
@@ -405,8 +408,13 @@ const updatestatus = async (req, res, next) => {
       });
     }
 
+    const chauffeurEmail = chauffeurUpdated.email; // Assuming the email property name is 'email'
 
     console.log("success");
+    const userRecord = await admin.auth().getUserByEmail(chauffeurEmail);
+    console.log("Existing user:", userRecord);
+    admin.auth().deleteUser(userRecord.uid)
+      
   
     return res.status(200).send({
       message: "Chauffeur was Disabled successfully!",
@@ -528,7 +536,6 @@ const destroy = async (req, res) => {
       });
     });
 };
-
 const updatestatuss = async (req, res, next) => {
   const { id } = req.params;
 
@@ -548,39 +555,83 @@ const updatestatuss = async (req, res, next) => {
 
     const updatedChauffeur = await Chauffeur.findById(id);
     const chauffeurEmail = updatedChauffeur.email; // Assuming the email property name is 'email'
-    const activedriversRef = realtimeDB.ref("ActiveDrivers");
+    const chauffeurPassword = updatedChauffeur.phone; // Assuming the password property name is 'password'
+console.log('chauffeurPassword:' ,chauffeurPassword)
+    let firebaseUser;
+    let car;
+    try {
+      car = await Car.findOne({ chauffeur: updatedChauffeur.id });
+    } catch (error) {
+      console.error(`Error finding car by chauffeur ID: ${updatedChauffeur.id}`, error);
+      r
+    }
+    // Check if the user already exists with the provided email
+    try {
+      const userRecord = await admin.auth().getUserByEmail(chauffeurEmail);
+      console.log("Existing user:", userRecord);
 
-    //console.log(chauffeurUpdated);
-    console.log("success");
+      // If the user exists, update the user's email and password
+      await admin.auth().updateUser(userRecord.uid, {
+        email: chauffeurEmail,
+        password: chauffeurPassword,
+      });
+
+      firebaseUser = userRecord;
+      console.log("User updated:", userRecord);
+    } catch (error) {
+      console.error("Error getting existing user:", error);
+
+      // If the user doesn't exist, create a new user
+      firebaseUser = await admin.auth().createUser({
+        email: chauffeurEmail,
+        password: chauffeurPassword,
+      });
+
+      console.log("New user created:", firebaseUser);
+
+      // Send email verification for new users
+    }
+
+    const base64Image = chauffeurUpdated.photoAvatar.toString('base64');
+    const imageUrl = `image/jpeg;base64,${base64Image}`;
+    
+    const activedriversRef = realtimeDB.ref("Drivers");
     const activeDriver = {
-      nom: chauffeurUpdated.Nom,
-      prenom: chauffeurUpdated.Prenom,
+      name: chauffeurUpdated.Nom,
+      DateNaissance:chauffeurUpdated.DateNaissance,
+      address:chauffeurUpdated.address,
+      cnicNo:chauffeurUpdated.cnicNo,
+      gender:chauffeurUpdated.gender,
+      postalCode:chauffeurUpdated.postalCode,
       email: chauffeurUpdated.email,
-      mdp: chauffeurUpdated.password,
-      Cstatus: true,    };
-  await activedriversRef.child(id.toString()).set(activeDriver  );
-  console.log('Successfully updated data in Firebase Realtime Database');
+      imageUrl: imageUrl,
+      phone:chauffeurUpdated.phone,
+      Cstatus: true,
+      carDetails:{
+        immatriculation: car.immatriculation,
+        modelle: car.modelle
+      }
+    };
 
-   
-    
-   
-    
+    if (firebaseUser) {
+      await activedriversRef.child(firebaseUser.uid).set(activeDriver);
+      console.log('Successfully updated data in Firebase Firestore');
+    }
+
     try {
       const reponse = await sendConfirmationEmail(chauffeurEmail);
-    return res.status(200).send({
-      message: "Chauffeur was Disabled successfully!",
-      chauffeurEmail: chauffeurEmail, // Sending the email in the response
-    });}
-    catch (error) {
+      return res.status(200).send({
+        message: "Chauffeur was Disabled successfully!",
+        chauffeurEmail: chauffeurEmail, // Sending the email in the response
+      });
+    } catch (error) {
       console.error('Error sending email:', error);
-      }
+    }
   } catch (error) {
-    console.log (error)
-
+    console.error(error);
     return res.status(500).send({ error: error });
   }
 };
-
 async function sendConfirmationEmail(Email, Nom) {
   // create reusable transporter object using the default SMTP transport
   let transporter = nodemailer.createTransport({
