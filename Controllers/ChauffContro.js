@@ -9,6 +9,8 @@ const realtimeDB = firebaseModule.firestoreApp.database();
 const db =require("../services/config");
 const admin = require('firebase-admin');
 const Car = require('../Models/Voiture'); // Assuming the Car schema is defined in 'Car.js'
+const Facture = require('../Models/Facture'); // Assuming the Car schema is defined in 'Car.js'
+const geolib = require('geolib');
 
 /**--------------------Ajouter un agnet------------------------  */
 
@@ -808,6 +810,93 @@ async function sendConfirmationEmail(Email, Nom) {
     });
 }
 
+
+
+rideRequestsRef = realtimeDB.ref('AllRideRequests');
+rideRequestsRef.orderByChild('status').equalTo('Ended').once('value', (snap) => {
+  // Iterate over each ride request
+  snap.forEach((childSnap) => {
+    const rideRequest = childSnap.val();
+
+    // Get the driver's phone number
+    const driverPhone = rideRequest.driverPhone;
+
+    // Get the driver's Chauffeur document
+    Chauffeur.findOne({ phone: driverPhone }, (err, chauffeur) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+
+      if (!chauffeur) {
+        console.warn(`No Chauffeur document found for driver with phone number ${driverPhone}`);
+        return;
+      }
+
+      // Calculate the day and night kilometers for the driver
+      let dayKilometrage = 0;
+      let nightKilometrage = 0;
+      const sourceAddress = rideRequest.source;
+      const destinationAddress = rideRequest.destination;
+      const time = rideRequest.time;
+
+      // Calculate the distance between the source and destination addresses
+      const distance = geolib.getDistance(sourceAddress, destinationAddress);
+      console.log(distance);
+
+      // Determine if the ride was during the day or night
+      const rideTime = new Date(time);
+      const hours = rideTime.getHours();
+      if (hours >= 7 && hours < 19) {
+        dayKilometrage += distance/1000;
+      } else {
+        nightKilometrage += distance/1000;
+      }
+
+      // Find the existing facture for the driver (if any) and update it
+      Facture.findOneAndUpdate(
+        { chauffeur: chauffeur._id },
+        {
+          $inc: {
+            dayKilometrage: dayKilometrage,
+            nightKilometrage: nightKilometrage
+          },
+          $set: {
+            date: rideTime
+          }
+        },
+        { new: true },
+        (err, facture) => {
+          if (err) {
+            console.error(err);
+            return;
+          }
+
+          if (!facture) {
+            // If no facture was found, create a new one
+            const newFacture = new Facture({
+              chauffeur: chauffeur._id,
+              date: rideTime,
+              dayKilometrage: dayKilometrage,
+              nightKilometrage: nightKilometrage
+            });
+
+            newFacture.save((err) => {
+              if (err) {
+                console.error(err);
+                return;
+              }
+
+              console.log(`Created a new Facture document for driver with phone number ${driverPhone}`);
+            });
+          } else {
+            console.log(`Updated Facture document for driver with phone number ${driverPhone}`);
+          }
+        }
+      );
+    });
+  });
+});
 module.exports = {
   register,
   login,

@@ -4,6 +4,12 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require('cors');
+const Facture = require("./Models/Facture");
+const Chauffeur = require("./Models/Chauffeur");
+const geolib = require('geolib');
+
+const firebaseModule = require("./services/config");
+const realtimeDB = firebaseModule.firestoreApp.database();
 
 
 
@@ -45,9 +51,9 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 const corsOptions ={
 
- origin:'https://front-admin-vert.vercel.app', 
+ //origin:'https://front-admin-vert.vercel.app', 
 
-//origin:' http://localhost:3002',
+origin:' http://localhost:3002',
 
   credentials:true,            //access-control-allow-credentials:true
   optionSuccessStatus:200
@@ -71,6 +77,67 @@ app.use('/Voi',Voi);
 app.use('/Tar',tar);
 app.use('/Con',con);
 
+const rideRequestsRef = realtimeDB.ref('AllRideRequests');
+rideRequestsRef.orderByChild('status').equalTo('Accepted').once('value', (snap) => {
+  // Iterate over each ride request
+  snap.forEach((childSnap) => {
+    const rideRequest = childSnap.val();
+
+    // Get the driver's phone number
+    const driverPhone = rideRequest.driverPhone;
+
+    // Get the driver's Chauffeur document
+    Chauffeur.findOne({ phone: driverPhone }, (err, chauffeur) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+
+      if (!chauffeur) {
+        console.warn(`No Chauffeur document found for driver with phone number ${driverPhone}`);
+        return;
+      }
+
+      // Calculate the day and night kilometers for the driver
+      let dayKilometrage = 0;
+      let nightKilometrage = 0;
+      const sourceAddress = rideRequest.sourceAddress;
+      const destinationAddress = rideRequest.destinationAddress;
+      const time = rideRequest.time;
+
+      // Calculate the distance between the source and destination addresses
+      const distance = geolib.getDistance(sourceAddress, destinationAddress);
+      console.log(distance);
+
+      // Determine if the ride was during the day or night
+      const rideTime = new Date(time);
+      const hours = rideTime.getHours();
+      if (hours >= 7 && hours < 19) {
+        dayKilometrage += distance;
+      } else {
+        nightKilometrage += distance;
+      }
+
+      // Create a new Facture document for the driver
+      const facture = new Facture({
+        chauffeur: chauffeur._id,
+        date: new Date(),
+        dayKilometrage: dayKilometrage,
+        NightKilometrage: nightKilometrage
+      });
+
+      // Save the Facture document to the database
+      facture.save((err) => {
+        if (err) {
+          console.error(err);
+          return;
+        }
+
+        console.log(`Created a new Facture document for driver with phone number ${driverPhone}`);
+      });
+    });
+  });
+});
 
 
 // catch 404 and forward to error handler
