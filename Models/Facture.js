@@ -7,7 +7,6 @@ const FactureSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Chauffeur",
             required: true,
-          //  unique :true 
         },
         date: {
             type: Date,
@@ -24,16 +23,7 @@ const FactureSchema = new mongoose.Schema(
         isPaid: {
             type: Boolean,
             default: false
-        },
-        paymentDate: {
-            type: Date
-        },
-        dayKilometrage:{
-            type:Number
-        },
-        nightKilometrage:{
-            type:Number
-        },
+        }
     },
     {
         timestamps: true

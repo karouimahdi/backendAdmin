@@ -53,7 +53,7 @@ router.get('/newchauf', ChauffContro.recuperernewchauf);
 // router.put('/updatechauf/:id',Multer.single("photoAvatar"),UploadImage, ChauffContro.update);
 router.put('/updatestatus/:id', ChauffContro.updatestatus);
 router.put('/updatestatuss/:id', ChauffContro.updatestatuss);
-
+//router.options('/facture-amounts',factureUpdate);
 
 
 

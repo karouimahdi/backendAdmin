@@ -4,42 +4,37 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require('cors');
-const Facture = require("./Models/Facture");
-const Chauffeur = require("./Models/Chauffeur");
-const geolib = require('geolib');
 
-const firebaseModule = require("./services/config");
-const realtimeDB = firebaseModule.firestoreApp.database();
+const { synchronizeData } = require('./Controllers/ChauffContro');
 
-
-
-const mongoose  = require('mongoose')
-const morgan    = require('morgan')
-const bodyParser = require('body-parser')
+const mongoose = require('mongoose');
+const morgan = require('morgan');
+const bodyParser = require('body-parser');
 const config = require("./config.json");
-const AuthRoute = require  ('./routes/adminRoutes');
-const Agentrout = require  ('./routes/AgentRoute');
-const Agentchauff = require  ('./routes/ChauffeurRoute');
-const ClRoute = require  ('./routes/ClientRoute');
-const Rec = require ('./routes/ReclamationRout')
-const Voi = require ('./routes/VoitureRoutes')
-const tar = require ('./routes/TarifRoute')
-const con = require ('./routes/ContactRoute')
+const AuthRoute = require('./routes/adminRoutes');
+const Agentrout = require('./routes/AgentRoute');
+const Agentchauff = require('./routes/ChauffeurRoute');
+const ClRoute = require('./routes/ClientRoute');
+const Rec = require('./routes/ReclamationRout');
+const Voi = require('./routes/VoitureRoutes');
+const tar = require('./routes/TarifRoute');
+const con = require('./routes/ContactRoute');
+const rides = require('./routes/RideRoute');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
 
-mongoose.connect(config.database,{useNewUrlParser : true , useUnifiedTopology:true})
-const db  = mongoose.connection
+mongoose.connect(config.database, { useNewUrlParser: true, useUnifiedTopology: true })
+const db = mongoose.connection
 
-db.on('error',(err) =>{
+db.on('error', (err) => {
     console.log(err)
-} )
+})
 
-db.once('open', ()=> {
+db.once('open', () => {
     console.log('DB Connection Estabblished !')
-  
+
 })
 
 
@@ -49,107 +44,55 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 app.use(logger('dev'));
-const corsOptions ={
+const corsOptions = {
 
- //origin:'https://front-admin-vert.vercel.app', 
+    //origin:'https://front-admin-vert.vercel.app', 
 
-origin:' http://localhost:3002',
+    origin: ' http://localhost:3002',
 
-  credentials:true,            //access-control-allow-credentials:true
-  optionSuccessStatus:200
+    credentials: true, //access-control-allow-credentials:true
+    optionSuccessStatus: 200
 }
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(bodyParser.urlencoded({extended : true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/api',AuthRoute);
-app.use('/agent',Agentrout);
-app.use('/Chauff',Agentchauff);
-app.use('/Client',ClRoute);
-app.use('/Rec',Rec);
-app.use('/Voi',Voi);
-app.use('/Tar',tar);
-app.use('/Con',con);
+app.use('/api', AuthRoute);
+app.use('/agent', Agentrout);
+app.use('/Chauff', Agentchauff);
+app.use('/Client', ClRoute);
+app.use('/Rec', Rec);
+app.use('/Voi', Voi);
+app.use('/Tar', tar);
+app.use('/Con', con);
 
-const rideRequestsRef = realtimeDB.ref('AllRideRequests');
-rideRequestsRef.orderByChild('status').equalTo('Accepted').once('value', (snap) => {
-  // Iterate over each ride request
-  snap.forEach((childSnap) => {
-    const rideRequest = childSnap.val();
+app.use('/Ride',rides);
 
-    // Get the driver's phone number
-    const driverPhone = rideRequest.driverPhone;
-
-    // Get the driver's Chauffeur document
-    Chauffeur.findOne({ phone: driverPhone }, (err, chauffeur) => {
-      if (err) {
-        console.error(err);
-        return;
-      }
-
-      if (!chauffeur) {
-        console.warn(`No Chauffeur document found for driver with phone number ${driverPhone}`);
-        return;
-      }
-
-      // Calculate the day and night kilometers for the driver
-      let dayKilometrage = 0;
-      let nightKilometrage = 0;
-      const sourceAddress = rideRequest.sourceAddress;
-      const destinationAddress = rideRequest.destinationAddress;
-      const time = rideRequest.time;
-
-      // Calculate the distance between the source and destination addresses
-      const distance = geolib.getDistance(sourceAddress, destinationAddress);
-      console.log(distance);
-
-      // Determine if the ride was during the day or night
-      const rideTime = new Date(time);
-      const hours = rideTime.getHours();
-      if (hours >= 7 && hours < 19) {
-        dayKilometrage += distance;
-      } else {
-        nightKilometrage += distance;
-      }
-
-      // Create a new Facture document for the driver
-      const facture = new Facture({
-        chauffeur: chauffeur._id,
-        date: new Date(),
-        dayKilometrage: dayKilometrage,
-        NightKilometrage: nightKilometrage
-      });
-
-      // Save the Facture document to the database
-      facture.save((err) => {
-        if (err) {
-          console.error(err);
-          return;
-        }
-
-        console.log(`Created a new Facture document for driver with phone number ${driverPhone}`);
-      });
-    });
-  });
-});
 
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  next(createError(404));
+    next(createError(404));
 });
 
-// error handler
-const PORT = process.env.PORT || 3001
+// Define an asynchronous function to start the server and initiate data synchronization
 
-app.listen(PORT,  ()=> {
-    console.log(`server is running on port ${PORT}`)
-})
+   
+
+        // Start the server
+        const PORT = process.env.PORT || 3001;
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
+    
+
+
+// Call the startServer function to start the server
 
 module.exports = app;

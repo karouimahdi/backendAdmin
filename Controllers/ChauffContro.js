@@ -10,7 +10,7 @@ const db =require("../services/config");
 const admin = require('firebase-admin');
 const Car = require('../Models/Voiture'); // Assuming the Car schema is defined in 'Car.js'
 const Facture = require('../Models/Facture'); // Assuming the Car schema is defined in 'Car.js'
-const geolib = require('geolib');
+const RideRequest = require('../Models/AllRideRequest'); // Import the RideRequest Mongoose model
 
 /**--------------------Ajouter un agnet------------------------  */
 
@@ -612,7 +612,8 @@ console.log('chauffeurPassword:' ,chauffeurPassword)
       carDetails:{
         immatriculation: car.immatriculation,
         modelle: car.modelle
-      }
+      },
+     
     };
 
     if (firebaseUser) {
@@ -811,92 +812,43 @@ async function sendConfirmationEmail(Email, Nom) {
 }
 
 
+async function updateFactureAmounts() {
+  try {
+    // Calculate the start and end dates for the current month
+    const currentDate = new Date();
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-rideRequestsRef = realtimeDB.ref('AllRideRequests');
-rideRequestsRef.orderByChild('status').equalTo('Ended').once('value', (snap) => {
-  // Iterate over each ride request
-  snap.forEach((childSnap) => {
-    const rideRequest = childSnap.val();
-
-    // Get the driver's phone number
-    const driverPhone = rideRequest.driverPhone;
-
-    // Get the driver's Chauffeur document
-    Chauffeur.findOne({ phone: driverPhone }, (err, chauffeur) => {
-      if (err) {
-        console.error(err);
-        return;
-      }
-
-      if (!chauffeur) {
-        console.warn(`No Chauffeur document found for driver with phone number ${driverPhone}`);
-        return;
-      }
-
-      // Calculate the day and night kilometers for the driver
-      let dayKilometrage = 0;
-      let nightKilometrage = 0;
-      const sourceAddress = rideRequest.source;
-      const destinationAddress = rideRequest.destination;
-      const time = rideRequest.time;
-
-      // Calculate the distance between the source and destination addresses
-      const distance = geolib.getDistance(sourceAddress, destinationAddress);
-      console.log(distance);
-
-      // Determine if the ride was during the day or night
-      const rideTime = new Date(time);
-      const hours = rideTime.getHours();
-      if (hours >= 7 && hours < 19) {
-        dayKilometrage += distance/1000;
-      } else {
-        nightKilometrage += distance/1000;
-      }
-
-      // Find the existing facture for the driver (if any) and update it
-      Facture.findOneAndUpdate(
-        { chauffeur: chauffeur._id },
-        {
-          $inc: {
-            dayKilometrage: dayKilometrage,
-            nightKilometrage: nightKilometrage
-          },
-          $set: {
-            date: rideTime
-          }
-        },
-        { new: true },
-        (err, facture) => {
-          if (err) {
-            console.error(err);
-            return;
-          }
-
-          if (!facture) {
-            // If no facture was found, create a new one
-            const newFacture = new Facture({
-              chauffeur: chauffeur._id,
-              date: rideTime,
-              dayKilometrage: dayKilometrage,
-              nightKilometrage: nightKilometrage
-            });
-
-            newFacture.save((err) => {
-              if (err) {
-                console.error(err);
-                return;
-              }
-
-              console.log(`Created a new Facture document for driver with phone number ${driverPhone}`);
-            });
-          } else {
-            console.log(`Updated Facture document for driver with phone number ${driverPhone}`);
-          }
-        }
-      );
+    // Find all RideRequest documents that have the same driverPhone as a Facture document
+    // and that were created within the current month
+    const rideRequests = await RideRequest.find({
+      driverPhone: { $in: (await Facture.distinct('chauffeur.phone', { date: { $gte: startOfMonth, $lte: endOfMonth } })) }
     });
-  });
-});
+
+    // Loop through each RideRequest document and update the corresponding Facture document
+    for (const rideRequest of rideRequests) {
+      // Find the Facture document that corresponds to the current RideRequest document
+      const facture = await Facture.findOne({ chauffeur: rideRequest.driverPhone, date: { $gte: startOfMonth, $lte: endOfMonth } });
+
+      if (facture) {
+        // If a Facture document is found, increment the fareAmount
+        facture.montant += rideRequest.fareAmount,
+        facture.isPaid=false;
+        await facture.save();
+      }
+    }
+
+    console.log('Facture amounts have been updated successfully.');
+  } catch (error) {
+    console.error('An error occurred while updating facture amounts:', error);
+  }
+}
+
+// Call the function to update the facture amounts
+updateFactureAmounts();
+
+
+
 module.exports = {
   register,
   login,
@@ -909,4 +861,5 @@ module.exports = {
   updatestatuss,
   Comptevald,
   recuperernewchauf,
+
 };

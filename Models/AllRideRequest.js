@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const rideRequestSchema = new mongoose.Schema({
+  firebaseId:{
+    type:String,
+    unique: true
+  },
   HealthStatus: {
     type: String,
     default: 'None'
@@ -25,11 +29,25 @@ const rideRequestSchema = new mongoose.Schema({
       
     }
     
-  },destinationAddress: {
+  },
+  destinationAddress: {
     type: String,
     
   },
-  
+  driverLocationData: {
+    latitude: {
+      type: Number,
+      
+    },
+    longitude: {
+      type: Number,
+      
+    }
+    
+  },
+  fareAmount:{
+    type:Number,
+  },
     driverName: {
       type: String,
       
