@@ -812,41 +812,6 @@ async function sendConfirmationEmail(Email, Nom) {
 }
 
 
-async function updateFactureAmounts() {
-  try {
-    // Calculate the start and end dates for the current month
-    const currentDate = new Date();
-    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-
-    // Find all RideRequest documents that have the same driverPhone as a Facture document
-    // and that were created within the current month
-    const rideRequests = await RideRequest.find({
-      driverPhone: { $in: (await Facture.distinct('chauffeur.phone', { date: { $gte: startOfMonth, $lte: endOfMonth } })) }
-    });
-
-    // Loop through each RideRequest document and update the corresponding Facture document
-    for (const rideRequest of rideRequests) {
-      // Find the Facture document that corresponds to the current RideRequest document
-      const facture = await Facture.findOne({ chauffeur: rideRequest.driverPhone, date: { $gte: startOfMonth, $lte: endOfMonth } });
-
-      if (facture) {
-        // If a Facture document is found, increment the fareAmount
-        facture.montant += rideRequest.fareAmount,
-        facture.isPaid=false;
-        await facture.save();
-      }
-    }
-
-    console.log('Facture amounts have been updated successfully.');
-  } catch (error) {
-    console.error('An error occurred while updating facture amounts:', error);
-  }
-}
-
-// Call the function to update the facture amounts
-updateFactureAmounts();
-
 
 
 module.exports = {
