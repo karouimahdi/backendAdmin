@@ -7,7 +7,7 @@ const saveRide = async (req, res) => {
             
             destination,
             
-            driverLocationData,
+            driverLocation,
             fareAmount,
             driverName,
             driverPhone,
@@ -26,8 +26,8 @@ const saveRide = async (req, res) => {
                 longitude: destination.longitude
             },
             driverLocationData: {
-                latitude: driverLocationData.latitude,
-                longitude: driverLocationData.longitude
+                latitude: driverLocation.latitude,
+                longitude: driverLocation.longitude
             },
             fareAmount: fareAmount,
             driverPhone: driverPhone,
