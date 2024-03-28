@@ -6,16 +6,6 @@ const rideRequestSchema = new mongoose.Schema({
     type: String,
     default: 'None'
   },
-  carDetails: {
-    carImmatriculation: {
-      type: String,
-      
-    },
-    carModel: {
-      type: String,
-      
-    }
-  },
   destination: {
     latitude: {
       type: Number,
@@ -45,10 +35,7 @@ const rideRequestSchema = new mongoose.Schema({
   fareAmount:{
     type:Number,
   },
-    driverName: {
-      type: String,
-      
-    },
+   
     driverPhone: {
       type: String,
       
