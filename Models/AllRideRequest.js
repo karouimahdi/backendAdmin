@@ -1,10 +1,7 @@
 const mongoose = require('mongoose');
 
 const rideRequestSchema = new mongoose.Schema({
-  firebaseId:{
-    type:String,
-    unique: true
-  },
+  
   HealthStatus: {
     type: String,
     default: 'None'
