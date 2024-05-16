@@ -8,18 +8,25 @@ const FactureSchema = new mongoose.Schema(
             ref: "Chauffeur",
             required: true,
         },
-        date: {
-            type: Date,
-            required: true
-        },
+        TotalAmountPerDay:[
+            {
+                day:{
+                    type:Date,
+                    required:true
+                },
+                totalAmount:{
+                    type:Number,
+                    required:true
+                }
+            }
+        ],
+       
+      
 
         montant: {
             type: Number,
         },
-        description: {
-            type: String,
-            trim: true
-        },
+      
         isPaid: {
             type: Boolean,
             default: false
@@ -32,3 +39,12 @@ const FactureSchema = new mongoose.Schema(
 
 const Facture = mongoose.model('Facture', FactureSchema);
 module.exports = Facture;
+const changeStream = Facture.watch();
+
+// Listen for change events
+changeStream.on('change', (change) => {
+    console.log('Change occurred:', change);
+
+    // React to changes accordingly
+    // For example, you can emit an event or perform any other action
+});
